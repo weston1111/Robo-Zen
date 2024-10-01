@@ -1,3 +1,5 @@
+# An example of how we can plot polar coordinates and passively define our pot bounds in python. 
+# This will coordinate with servo commands 
 import matplotlib.pyplot as plt
 import numpy as np
 
