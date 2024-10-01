@@ -1,5 +1,10 @@
 # An example of how we can plot polar coordinates and passively define our pot bounds in python. 
 # This will coordinate with servo commands 
+#    For each point along the path of the function: 
+#        The radius and theta value will be sent to the servo control code. 
+#        Theta will set the rotation value of the base servo (speed will need to be debugged and set to a value that allows smooth movement/time for the arm to move)
+#        The radius will be used to partition extension values to each of the arm servos to achieve the proper extension from base to end of the arm.
+
 import matplotlib.pyplot as plt
 import numpy as np
 
