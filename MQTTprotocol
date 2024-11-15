@@ -1,20 +1,22 @@
-
 import UIKit
-import CoreBluetooth
+import CocoaMQTT
 
-var isBluetoothConnected: Bool = false
+var isMQTTConnected: Bool = false
 
-class BluetoothSettingsViewController: UIViewController, CBCentralManagerDelegate, CBPeripheralDelegate {
+class MQTTSettingsViewController: UIViewController, CocoaMQTTDelegate {
     
-    var centralManager: CBCentralManager!
-    var discoveredPeripheral: CBPeripheral?
+    var mqttClient: CocoaMQTT!
+    let clientID = "iOS_" + String(ProcessInfo().processIdentifier)
+    // Replace with your Raspberry Pi's IP address and port
+    let host = "192.168.1.xxx"
+    let port: UInt16 = 1883
     
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 1.0)
         
         let titleLabel = UILabel()
-        titleLabel.text = "Bluetooth Settings"
+        titleLabel.text = "MQTT Settings"
         titleLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleLabel.textAlignment = .left
@@ -26,8 +28,15 @@ class BluetoothSettingsViewController: UIViewController, CBCentralManagerDelegat
         ])
         
         setupButtons()
-        
-        centralManager = CBCentralManager(delegate: self, queue: nil)
+        setupMQTTClient()
+    }
+    
+    func setupMQTTClient() {
+        mqttClient = CocoaMQTT(clientID: clientID, host: host, port: port)
+        mqttClient.username = "your_username"  // If required
+        mqttClient.password = "your_password"  // If required
+        mqttClient.keepAlive = 60
+        mqttClient.delegate = self
     }
     
     func setupButtons() {
@@ -38,8 +47,9 @@ class BluetoothSettingsViewController: UIViewController, CBCentralManagerDelegat
         view.addSubview(stackView)
         
         let buttonTitles = [
-            "Scan for Devices",
-            "Disconnect Device"
+            "Connect to Pi",
+            "Disconnect from Pi",
+            "Send Test Message"
         ]
         
         for title in buttonTitles {
@@ -62,29 +72,32 @@ class BluetoothSettingsViewController: UIViewController, CBCentralManagerDelegat
     
     @objc func buttonTapped(_ sender: UIButton) {
         switch sender.currentTitle {
-        case "Scan for Devices":
-            scanForDevices()
-        case "Disconnect Device":
-            disconnectDevice()
+        case "Connect to Pi":
+            connectToPi()
+        case "Disconnect from Pi":
+            disconnectFromPi()
+        case "Send Test Message":
+            sendTestMessage()
         default:
             break
         }
     }
     
-    @objc func scanForDevices() {
-        if centralManager.state == .poweredOn {
-            centralManager.scanForPeripherals(withServices: nil, options: nil)
-            showAlert(title: "Scanning", message: "Scanning for Bluetooth devices...")
-        } else {
-            showAlert(title: "Bluetooth Error", message: "Bluetooth is not available.")
-        }
+    @objc func connectToPi() {
+        _ = mqttClient.connect()
+        showAlert(title: "Connecting", message: "Connecting to Raspberry Pi...")
     }
     
-    @objc func disconnectDevice() {
-        if let peripheral = discoveredPeripheral {
-            centralManager.cancelPeripheralConnection(peripheral)
+    @objc func disconnectFromPi() {
+        mqttClient.disconnect()
+    }
+    
+    @objc func sendTestMessage() {
+        if isMQTTConnected {
+            mqttClient.publish("ios/test", withString: "Hello from iOS!")
+            showAlert(title: "Message Sent", message: "Test message sent to Raspberry Pi")
         } else {
-            showAlert(title: "Error", message: "No device connected to disconnect.")
+            showAlert(title: "Error", message: "Not connected to MQTT broker")
         }
     }
     
@@ -94,33 +107,31 @@ class BluetoothSettingsViewController: UIViewController, CBCentralManagerDelegat
         present(alert, animated: true, completion: nil)
     }
     
-    func centralManagerDidUpdateState(_ central: CBCentralManager) {
-        if central.state == .poweredOn {
-            print("Bluetooth is powered on.")
-        } else {
-            showAlert(title: "Bluetooth Error", message: "Bluetooth is not available.")
+    // MARK: - CocoaMQTT Delegate Methods
+    
+    func mqtt(_ mqtt: CocoaMQTT, didConnect host: String, port: Int) {
+        print("Connected to \(host) on port \(port)")
+        isMQTTConnected = true
+        mqttClient.subscribe("raspberrypi/response")
+        showAlert(title: "Connected", message: "Connected to Raspberry Pi")
+    }
+    
+    func mqtt(_ mqtt: CocoaMQTT, didDisconnect error: Error?) {
+        print("Disconnected from broker")
+        isMQTTConnected = false
+        showAlert(title: "Disconnected", message: "Disconnected from Raspberry Pi")
+    }
+    
+    func mqtt(_ mqtt: CocoaMQTT, didReceiveMessage message: CocoaMQTTMessage, id: UInt16) {
+        if let messageString = message.string {
+            print("Received message: \(messageString)")
+            showAlert(title: "Message Received", message: messageString)
         }
     }
     
-    func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {
-        print("Discovered \(peripheral.name ?? "Unknown")")
-        discoveredPeripheral = peripheral
-        
-        centralManager.stopScan()
-        centralManager.connect(peripheral, options: nil)
-        
-        showAlert(title: "Device Found", message: "Connecting to \(peripheral.name ?? "Unknown")...")
-    }
-    
-    func centralManager(_ central: CBCentralManager, didConnect peripheral: CBPeripheral) {
-        print("Connected to \(peripheral.name ?? "Unknown")")
-        isBluetoothConnected = true
-        showAlert(title: "Connected", message: "You are now connected to the device.")
-    }
-    
-    func centralManager(_ central: CBCentralManager, didDisconnectPeripheral peripheral: CBPeripheral, error: Error?) {
-        print("Disconnected from \(peripheral.name ?? "Unknown")")
-        isBluetoothConnected = false
-        showAlert(title: "Disconnected", message: "You have disconnected from the device.")
-    }
-    }
+    // Required delegate methods
+    func mqtt(_ mqtt: CocoaMQTT, didPublishMessage message: CocoaMQTTMessage, id: UInt16) {}
+    func mqtt(_ mqtt: CocoaMQTT, didPublishAck id: UInt16) {}
+    func mqtt(_ mqtt: CocoaMQTT, didSubscribeTopic topic: String) {}
+    func mqtt(_ mqtt: CocoaMQTT, didUnsubscribeTopic topic: String) {}
+}
