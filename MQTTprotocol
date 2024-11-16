@@ -3,17 +3,22 @@ import CocoaMQTT
 
 var isMQTTConnected: Bool = false
 
-class MQTTSettingsViewController: UIViewController, CocoaMQTTDelegate {
+class MQTTSettingsViewController: UIViewController {
     
-    var mqttClient: CocoaMQTT!
-    let clientID = "iOS_" + String(ProcessInfo().processIdentifier)
-    let host = "192.168.4.79"
-    let port: UInt16 = 1883
+    private var mqttClient: CocoaMQTT!
+    private let clientID = UUID().uuidString
+    private let host = "YOUR_RASPBERRY_PI_IP" // e.g., "192.168.1.100"
+    private let port: UInt16 = 1883
     
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = UIColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 1.0)
         
+        setupUI()
+        setupMQTTClient()
+    }
+    
+    private func setupUI() {
         let titleLabel = UILabel()
         titleLabel.text = "MQTT Settings"
         titleLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
@@ -27,18 +32,9 @@ class MQTTSettingsViewController: UIViewController, CocoaMQTTDelegate {
         ])
         
         setupButtons()
-        setupMQTTClient()
     }
     
-    func setupMQTTClient() {
-        mqttClient = CocoaMQTT(clientID: clientID, host: host, port: port)
-        mqttClient.username = "your_username"  // If required
-        mqttClient.password = "your_password"  // If required
-        mqttClient.keepAlive = 60
-        mqttClient.delegate = self
-    }
-    
-    func setupButtons() {
+    private func setupButtons() {
         let stackView = UIStackView()
         stackView.axis = .vertical
         stackView.spacing = 20
@@ -69,12 +65,18 @@ class MQTTSettingsViewController: UIViewController, CocoaMQTTDelegate {
         ])
     }
     
+    private func setupMQTTClient() {
+        mqttClient = CocoaMQTT(clientID: clientID, host: host, port: port)
+        mqttClient.keepAlive = 60
+        mqttClient.delegate = self
+    }
+    
     @objc func buttonTapped(_ sender: UIButton) {
         switch sender.currentTitle {
         case "Connect to Pi":
-            connectToPi()
+            connectToMQTT()
         case "Disconnect from Pi":
-            disconnectFromPi()
+            disconnectFromMQTT()
         case "Send Test Message":
             sendTestMessage()
         default:
@@ -82,19 +84,22 @@ class MQTTSettingsViewController: UIViewController, CocoaMQTTDelegate {
         }
     }
     
-    @objc func connectToPi() {
+    private func connectToMQTT() {
         _ = mqttClient.connect()
-        showAlert(title: "Connecting", message: "Connecting to Raspberry Pi...")
+        showAlert(title: "Connecting", message: "Attempting to connect to Raspberry Pi...")
     }
     
-    @objc func disconnectFromPi() {
+    private func disconnectFromMQTT() {
         mqttClient.disconnect()
     }
     
-    @objc func sendTestMessage() {
+    private func sendTestMessage() {
         if isMQTTConnected {
-            mqttClient.publish("ios/test", withString: "Hello from iOS!")
-            showAlert(title: "Message Sent", message: "Test message sent to Raspberry Pi")
+            let testData = ["message": "Test from iOS", "timestamp": Date().timeIntervalSince1970] as [String : Any]
+            if let jsonData = try? JSONSerialization.data(withJSONObject: testData),
+               let jsonString = String(data: jsonData, encoding: .utf8) {
+                mqttClient.publish("ios/messages", withString: jsonString)
+            }
         } else {
             showAlert(title: "Error", message: "Not connected to MQTT broker")
         }
@@ -105,27 +110,14 @@ class MQTTSettingsViewController: UIViewController, CocoaMQTTDelegate {
         alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
         present(alert, animated: true, completion: nil)
     }
-    
-    // MARK: - CocoaMQTT Delegate Methods
-    
-    func mqtt(_ mqtt: CocoaMQTT, didConnectAck ack: CocoaMQTTConnAck) {
-        if ack == .accept {
-            print("Connection accepted")
-            isMQTTConnected = true
-            mqttClient.subscribe("raspberrypi/response")
-            showAlert(title: "Connected", message: "Connected to Raspberry Pi")
-        } else {
-            print("Connection refused: \(ack)")
-            showAlert(title: "Connection Failed", message: "Failed to connect to Raspberry Pi")
-        }
-    }
-    
-    func mqtt(_ mqtt: CocoaMQTT, didPublishMessage message: CocoaMQTTMessage, id: UInt16) {
-        print("Message published: \(message.string ?? "")")
-    }
-    
-    func mqtt(_ mqtt: CocoaMQTT, didPublishAck id: UInt16) {
-        print("Message published with id: \(id)")
+}
+
+extension MQTTSettingsViewController: CocoaMQTTDelegate {
+    func mqtt(_ mqtt: CocoaMQTT, didConnect host: String, port: Int) {
+        print("Connected to \(host) on port \(port)")
+        isMQTTConnected = true
+        mqttClient.subscribe("raspberry/response")
+        showAlert(title: "Connected", message: "Successfully connected to Raspberry Pi")
     }
     
     func mqtt(_ mqtt: CocoaMQTT, didReceiveMessage message: CocoaMQTTMessage, id: UInt16) {
@@ -135,28 +127,16 @@ class MQTTSettingsViewController: UIViewController, CocoaMQTTDelegate {
         }
     }
     
-    func mqtt(_ mqtt: CocoaMQTT, didSubscribeTopics success: NSDictionary, failed: [String]) {
-        print("Subscribed to topics: \(success)")
-        if !failed.isEmpty {
-            print("Failed to subscribe to topics: \(failed)")
-        }
-    }
-    
-    func mqtt(_ mqtt: CocoaMQTT, didUnsubscribeTopics topics: [String]) {
-        print("Unsubscribed from topics: \(topics)")
-    }
-    
-    func mqttDidPing(_ mqtt: CocoaMQTT) {
-        print("Ping sent")
-    }
-    
-    func mqttDidReceivePong(_ mqtt: CocoaMQTT) {
-        print("Pong received")
-    }
-    
+    // Required delegate methods
+    func mqtt(_ mqtt: CocoaMQTT, didConnectAck ack: CocoaMQTTConnAck) {}
+    func mqtt(_ mqtt: CocoaMQTT, didPublishMessage message: CocoaMQTTMessage, id: UInt16) {}
+    func mqtt(_ mqtt: CocoaMQTT, didPublishAck id: UInt16) {}
+    func mqtt(_ mqtt: CocoaMQTT, didSubscribeTopic topic: String) {}
+    func mqtt(_ mqtt: CocoaMQTT, didUnsubscribeTopic topic: String) {}
+    func mqttDidPing(_ mqtt: CocoaMQTT) {}
+    func mqttDidReceivePong(_ mqtt: CocoaMQTT) {}
     func mqttDidDisconnect(_ mqtt: CocoaMQTT, withError err: Error?) {
-        print("Disconnected from broker with error: \(String(describing: err))")
         isMQTTConnected = false
-        showAlert(title: "Disconnected", message: "Disconnected from Raspberry Pi")
+        showAlert(title: "Disconnected", message: "Disconnected from MQTT broker")
     }
 }
