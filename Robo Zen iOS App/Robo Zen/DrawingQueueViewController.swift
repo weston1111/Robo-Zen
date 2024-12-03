@@ -1,15 +1,15 @@
 //
 //  DrawingQueueViewController.swift
-//  Robo Zen
+//  Robo-Zen
 //
-//  Created by Wes Cook on 10/15/24.
 //
 import UIKit
 
 class DrawingQueueViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
     
     private let tableView = UITableView()
-    private let messageLabel = UILabel()
+    private let noDrawingsMessageLabel = UILabel() // will tell user if there are no drawings
+
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -26,29 +26,26 @@ class DrawingQueueViewController: UIViewController, UITableViewDelegate, UITable
         view.addSubview(titleLabel)
         
         NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 40),
+            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
             titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
         
 
-        messageLabel.text = "There are no drawings in the queue for Robo Zen currently!"
-        messageLabel.font = UIFont.systemFont(ofSize: 20)
-        messageLabel.textAlignment = .center
-        messageLabel.translatesAutoresizingMaskIntoConstraints = false
-        messageLabel.numberOfLines = 0
-        view.addSubview(messageLabel)
+        noDrawingsMessageLabel.text = "There are no drawings in the queue for Robo-Zen currently!"
+        noDrawingsMessageLabel.font = UIFont.systemFont(ofSize: 20)
+        noDrawingsMessageLabel.textAlignment = .center
+        noDrawingsMessageLabel.translatesAutoresizingMaskIntoConstraints = false
+        noDrawingsMessageLabel.numberOfLines = 0
+        view.addSubview(noDrawingsMessageLabel)
         
         NSLayoutConstraint.activate([
-            messageLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            messageLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            messageLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            messageLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
+            noDrawingsMessageLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            noDrawingsMessageLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            noDrawingsMessageLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            noDrawingsMessageLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)
         ])
         
-
         setupTableView()
-        
- 
         updateQueueDisplay()
     }
     
@@ -56,12 +53,13 @@ class DrawingQueueViewController: UIViewController, UITableViewDelegate, UITable
         tableView.delegate = self
         tableView.dataSource = self
         tableView.register(UITableViewCell.self, forCellReuseIdentifier: "DrawingCell")
+        tableView.backgroundColor = UIColor.clear
         tableView.translatesAutoresizingMaskIntoConstraints = false
         tableView.isEditing = false
         view.addSubview(tableView)
 
         NSLayoutConstraint.activate([
-            tableView.topAnchor.constraint(equalTo: messageLabel.bottomAnchor, constant: 20),
+            tableView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 50),
             tableView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             tableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             tableView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
@@ -70,10 +68,10 @@ class DrawingQueueViewController: UIViewController, UITableViewDelegate, UITable
     
     private func updateQueueDisplay() {
         if drawingQueue.isEmpty {
-            messageLabel.isHidden = false
+            noDrawingsMessageLabel.isHidden = false
             tableView.isHidden = true
         } else {
-            messageLabel.isHidden = true
+            noDrawingsMessageLabel.isHidden = true
             tableView.isHidden = false
             tableView.reloadData()
         }
@@ -145,6 +143,7 @@ class DrawingQueueViewController: UIViewController, UITableViewDelegate, UITable
             self.updateQueueDisplay()
             self.tableView.reloadData()
         }))
+        
         present(alert, animated: true, completion: nil)
     }
     func didDeleteDrawing(_ drawing: Drawing) {

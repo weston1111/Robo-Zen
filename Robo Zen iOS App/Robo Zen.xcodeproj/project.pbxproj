@@ -30,7 +30,7 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		A19AA1762CBD708500218C9F /* Exceptions for "Robo Zen" folder in "Robo Zen" target */ = {
+		A12B6E282CFE9DFD00D02D3B /* Exceptions for "Robo Zen" folder in "Robo Zen" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -40,10 +40,10 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		A19AA1502CBD708200218C9F /* Robo Zen */ = {
+		A12B6E1A2CFE9DFD00D02D3B /* Robo Zen */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				A19AA1762CBD708500218C9F /* Exceptions for "Robo Zen" folder in "Robo Zen" target */,
+				A12B6E282CFE9DFD00D02D3B /* Exceptions for "Robo Zen" folder in "Robo Zen" target */,
 			);
 			path = "Robo Zen";
 			sourceTree = "<group>";
@@ -88,7 +88,7 @@
 		A19AA1452CBD708200218C9F = {
 			isa = PBXGroup;
 			children = (
-				A19AA1502CBD708200218C9F /* Robo Zen */,
+				A12B6E1A2CFE9DFD00D02D3B /* Robo Zen */,
 				A19AA1672CBD708500218C9F /* Robo ZenTests */,
 				A19AA1712CBD708500218C9F /* Robo ZenUITests */,
 				A19AA14F2CBD708200218C9F /* Products */,
@@ -121,7 +121,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				A19AA1502CBD708200218C9F /* Robo Zen */,
+				A12B6E1A2CFE9DFD00D02D3B /* Robo Zen */,
 			);
 			name = "Robo Zen";
 			packageProductDependencies = (

@@ -1,8 +1,7 @@
 //
 //  DrawingDetailedView.swift
-//  Robo Zen
+//  Robo-Zen
 //
-//  Created by Wes Cook on 10/15/24.
 //
 
 
@@ -14,7 +13,6 @@ protocol DrawingDetailedViewControllerDelegate: AnyObject {
 }
 
 class DrawingDetailedViewController: UIViewController {
-    
     var drawing: Drawing
     let drawingView = DrawingView()
     weak var delegate: DrawingDetailedViewControllerDelegate? 
@@ -41,7 +39,7 @@ class DrawingDetailedViewController: UIViewController {
     private func setupNavigationBar() {
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "Delete", style: .plain, target: self, action: #selector(deleteDrawing))
     }
-
+    
     private func setupDrawingView() {
         view.backgroundColor = UIColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 1.0)
         drawingView.translatesAutoresizingMaskIntoConstraints = false
@@ -56,16 +54,16 @@ class DrawingDetailedViewController: UIViewController {
         
         isDrawingAllowed = false
     }
-
+    
+    // display the drawing
     private func displayDrawing() {
-
         drawingView.lines = drawing.points
+        print(drawing.points)
         drawingView.setNeedsDisplay()
     }
 
     @objc private func deleteDrawing() {
         delegate?.didDeleteDrawing(drawing)
-        
         navigationController?.popViewController(animated: true)
     }
     

@@ -1,38 +1,69 @@
 //
 //  DrawingView.swift
-//  Robo Zen
+//  Robo-Zen
 //
-//  Created by Wes Cook on 10/14/24.
 //
 
 
 import UIKit
 
-
-struct Drawing {
-    let id: Int
+// drawing struct
+// points is all of the points of the drawing
+// - an array of all of the lines of the drawing
+struct Drawing: Encodable {
+    let id: Int // so we can keep track of the drawing in the queue, etc
     let name: String
     let points: [[CGPoint]]
 }
 
-var idCount = 0
+extension Drawing {
+    func transformDrawing(xSubtract: CGFloat, ySubtract: CGFloat) -> Drawing {
+        let transformedPoints = points.map { pointGroup in
+            pointGroup.map { point in
+                CGPoint(x: point.x - xSubtract, y: point.y - ySubtract)
+            }
+        }
+        
+        let reducedTransformedPoints = transformedPoints.map { subarray in
+            subarray.enumerated().compactMap { index, point in
+                index % 3 == 0 ? point : nil
+            }
+        }
+        
+        print("Before:\n")
+        print(transformedPoints)
+        print("After:\n")
+        print(reducedTransformedPoints)
+                    
+        return Drawing(
+            id: self.id,
+            name: self.name,
+            points: reducedTransformedPoints
+        )
+    }
+}
+
+var idCount = 0 // to keep track of how many drawings are created
 var globalDrawings: [Drawing] = []
-var isDrawingAllowed = true
+var isDrawingAllowed = true // global so user isn't allowed to draw when the finished drawing is displayed in other views
+
 
 class DrawingView: UIView {
-    public var lines: [[CGPoint]] = []
-    public var currentLine: [CGPoint] = []
-
+    public var lines: [[CGPoint]] = [] // the lines that make up the drawing
+    public var currentLine: [CGPoint] = [] // the array of points that make up the line the user is currently drawing
+    
+    // make drawing area
     override init(frame: CGRect) {
         super.init(frame: frame)
         self.backgroundColor = .clear
         self.clipsToBounds = true
     }
-
-    required init?(coder: NSCoder) {
+    
+    required init?(coder: NSCoder) { // required
         fatalError("init(coder:) has not been implemented")
     }
-
+    
+    // mark where user starts touching the screen
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         if isDrawingAllowed {
             if let touch = touches.first {
@@ -43,7 +74,8 @@ class DrawingView: UIView {
             }
         }
     }
-
+    
+    // keep track of where user is touching the screen
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         if isDrawingAllowed {
             if let touch = touches.first {
@@ -55,7 +87,8 @@ class DrawingView: UIView {
             }
         }
     }
-
+    
+    // keep track of when user is done touching screen
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         if !currentLine.isEmpty {
             lines.append(currentLine)
@@ -63,12 +96,11 @@ class DrawingView: UIView {
             setNeedsDisplay()
         }
     }
-
+    
+    // for the drawing to show up while the user is drawing
     override func draw(_ rect: CGRect) {
         let circlePath = UIBezierPath(ovalIn: rect)
-        
         circlePath.addClip()
-        
         UIColor.black.setStroke()
         let linePath = UIBezierPath()
         linePath.lineWidth = 8.0
@@ -90,13 +122,13 @@ class DrawingView: UIView {
         }
 
         linePath.stroke()
-        
         UIColor.black.setStroke()
         circlePath.lineWidth = 2.0
         circlePath.stroke()
     }
-
-    private func isPointInsideCircle(_ point: CGPoint) -> Bool {
+    
+    // to ensure user's points are only tracked if they are in the circle
+    public func isPointInsideCircle(_ point: CGPoint) -> Bool {
         let radius = bounds.width / 2
         let center = CGPoint(x: bounds.midX, y: bounds.midY)
         let distance = sqrt(pow(point.x - center.x, 2) + pow(point.y - center.y, 2))
@@ -108,31 +140,29 @@ class DrawingView: UIView {
         currentLine.removeAll()
         setNeedsDisplay()
     }
-
-
+    
     func getDrawingData() -> [[CGPoint]] {
         return lines
     }
 }
 
 class RoboZenDrawingViewController: UIViewController {
-    
     private let drawingView = DrawingView()
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        view.backgroundColor = UIColor(red: 0.8, green: 0.9, blue: 1.0, alpha: 1.0)
+        view.backgroundColor = UIColor(red: 0.8, green: 0.9, blue: 1.2, alpha: 1.0)
 
         let titleLabel = UILabel()
         titleLabel.text = "Drawing Creator"
         titleLabel.font = UIFont.systemFont(ofSize: 34, weight: .bold)
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.textAlignment = .left
+        titleLabel.textAlignment = .center
         view.addSubview(titleLabel)
         
         NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 40),
-            titleLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20)
+            titleLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor)
         ])
         
         setupDrawingArea()
@@ -151,10 +181,10 @@ class RoboZenDrawingViewController: UIViewController {
             drawingView.heightAnchor.constraint(equalToConstant: 300)
         ])
 
-        let submitButton = createStyledButton(withTitle: "Submit")
+        let submitButton = createStyledButton(withTitle: " Submit ")
         submitButton.addTarget(self, action: #selector(submitDrawing), for: .touchUpInside)
 
-        let clearButton = createStyledButton(withTitle: "Clear")
+        let clearButton = createStyledButton(withTitle: " Clear ")
         clearButton.addTarget(self, action: #selector(clearDrawing), for: .touchUpInside)
 
         view.addSubview(submitButton)
@@ -175,7 +205,7 @@ class RoboZenDrawingViewController: UIViewController {
         button.titleLabel?.font = UIFont(name: "AvenirNext-Bold", size: 28)
         button.backgroundColor = UIColor.systemTeal
         button.setTitleColor(.white, for: .normal)
-        button.layer.cornerRadius = 10
+        button.layer.cornerRadius = 3
         button.layer.borderColor = UIColor.black.cgColor
 
 
@@ -201,7 +231,12 @@ class RoboZenDrawingViewController: UIViewController {
 
             let drawingData = self.drawingView.getDrawingData()
             let newDrawing = Drawing(id: idCount+1, name: nameDescriptor, points: drawingData)
-            globalDrawings.append(newDrawing)
+            idCount+=1
+            //print(newDrawing.points)
+            let transformedNewDrawing = newDrawing.transformDrawing(xSubtract: 150, ySubtract: 150)
+            //print(transformedNewDrawing.points)
+
+            globalDrawings.append(transformedNewDrawing)
 
             let successAlert = UIAlertController(title: "Success", message: "Drawing successfully saved! You can find it in the View Designs section on the home screen.", preferredStyle: .alert)
             successAlert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
